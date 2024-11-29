@@ -117,6 +117,12 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun loginNoAccount(navigateToDetail: () -> Unit) {
+        viewModelScope.launch {
+            authAndNavigate(navigateToDetail = navigateToDetail, authFunction = authService.loginAnonymous())
+        }
+    }
+
     private suspend fun authAndNavigate(authFunction: FirebaseUser?, navigateToDetail: () -> Unit) {
         val result = withContext(Dispatchers.IO) { authFunction }
         if (result != null) navigateToDetail()

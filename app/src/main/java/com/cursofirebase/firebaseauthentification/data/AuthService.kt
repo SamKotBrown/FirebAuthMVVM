@@ -118,6 +118,8 @@ class AuthService @Inject constructor(
         return initRegisterWithProvider(activity, builtProvider)
     }
 
+    suspend fun loginAnonymous(): FirebaseUser? = firebaseAuth.signInAnonymously().await().user
+
     private suspend fun initRegisterWithProvider(
         activity: Activity,
         builtProvider: OAuthProvider

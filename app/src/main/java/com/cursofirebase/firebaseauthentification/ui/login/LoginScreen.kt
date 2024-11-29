@@ -144,6 +144,14 @@ fun LoginScreen(
                     }
                 }
             )
+            LoginAnonymousButton(
+                modifier = Modifier,
+                onClick = {
+                    loginViewModel.loginNoAccount {
+                        navigateToDetail()
+                    }
+                }
+            )
             PhoneButton(
                 modifier = Modifier,
                 onClick = {
@@ -231,6 +239,20 @@ private fun LoginButton(modifier: Modifier, onClick: () -> Unit) {
         )
     ) {
         Text(text = "LOGIN WITH MAIL")
+    }
+}
+
+@Composable
+private fun LoginAnonymousButton(modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick, modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF5D5A61)
+        )
+    ) {
+        Text(text = "ENTER WITH NO ACCOUNT")
     }
 }
 
