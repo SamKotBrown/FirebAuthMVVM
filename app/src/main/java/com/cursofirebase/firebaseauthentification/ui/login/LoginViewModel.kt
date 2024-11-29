@@ -2,8 +2,6 @@ package com.cursofirebase.firebaseauthentification.ui.login
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.provider.Settings
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.ViewModel
@@ -12,6 +10,7 @@ import com.cursofirebase.firebaseauthentification.R
 import com.cursofirebase.firebaseauthentification.data.AuthService
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.firebase.FirebaseException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,22 +32,6 @@ class LoginViewModel @Inject constructor(
 
     var verifCode: String = ""
 
-    fun login(mailText: String, pasText: String, navigateToDetail: () -> Unit) {
-        viewModelScope.launch {
-            _isLoading.value = true
-
-            val result = withContext(Dispatchers.IO) {
-                authService.login(mailText, pasText)
-            }
-
-            if (result != null) {
-                navigateToDetail()
-            }
-
-            _isLoading.value = false
-        }
-    }
-
     fun loginPhone(
         phoneText: String,
         activity: Activity,
@@ -63,14 +46,8 @@ class LoginViewModel @Inject constructor(
                 override fun onVerificationCompleted(credentials: PhoneAuthCredential) {
                     //Se llama cuando detecta que es un número de telefono correcto
                     viewModelScope.launch {
-                        val result = withContext(Dispatchers.IO) {
-                            authService.completeCredentialChecking(
-                                credentials
-                            )
-                        }
-                        if (result != null) {
-                            onVerificationCompleted()
-                        }
+                        authAndNavigate(authService.completeCredentialChecking(credentials),
+                            onVerificationCompleted)
                     }
                 }
 
@@ -97,17 +74,6 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun verifyCode(text: String, onSuccessVerification: () -> Unit) {
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                authService.verifyCode(verifCode, text)
-            }
-            if (result != null) {
-                onSuccessVerification()
-            }
-        }
-    }
-
     fun doGoogleSignIn(
         context: Context,
         navigateToDetail: () -> Unit
@@ -121,19 +87,39 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             val resultCredential = credentialManager.getCredential(context, googleSignInRequest)
-            val loginResult = withContext(Dispatchers.IO) {
-                authService.getGoogleClient(resultCredential)
-            }
-            if (loginResult != null) {
-                navigateToDetail()
-            }
+            authAndNavigate(authService.getGoogleClient(resultCredential), navigateToDetail)
         }
     }
 
-    private fun getAddGoogleAccountIntent(): Intent {
-        val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
-        intent.putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
-        return intent
+    fun login(mailText: String, pasText: String, navigateToDetail: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            authAndNavigate(authService.login(mailText, pasText), navigateToDetail)
+            _isLoading.value = false
+        }
+    }
+
+    fun verifyCode(text: String, onSuccessVerification: () -> Unit) {
+        viewModelScope.launch {
+            authAndNavigate(authService.verifyCode(verifCode, text), onSuccessVerification)
+        }
+    }
+
+    fun gitHubLoginSelected(activity: Activity, navigateToDetail: () -> Unit) {
+        viewModelScope.launch {
+            authAndNavigate(authService.gitHubLogin(activity), navigateToDetail)
+        }
+    }
+
+    fun twitterLoginSelected(activity: Activity, navigateToDetail: () -> Unit) {
+        viewModelScope.launch {
+            authAndNavigate(authService.twitterLogin(activity), navigateToDetail)
+        }
+    }
+
+    private suspend fun authAndNavigate(authFunction: FirebaseUser?, navigateToDetail: () -> Unit) {
+        val result = withContext(Dispatchers.IO) { authFunction }
+        if (result != null) navigateToDetail()
     }
 
     private fun getGoogleIdOption(context: Context): GetGoogleIdOption {
